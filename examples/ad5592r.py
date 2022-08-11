@@ -32,19 +32,33 @@
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 import adi
+from adi.context_manager import context_manager
 
 # Set up AD5592R/AD5593R
-myad5592r = adi.ad5592r(uri="ip:analog.local")
+myad5592r = adi.ad5592r(uri="")
 
-# Write channel
-# Read channels and its parameters
+# Write votalge value for each channel
+for ch in myad5592r.channel:
+    if ch._output:                          # We only write if it is an output channel
+        mV = input(f"Enter desired voltage for channel {ch.name} in mV: " )
+        ch.raw = (float(mV)/float(ch.scale))
+
+#for self in myad5592r:
+#    print (self._device_name) 
+
+# Read each channels and its parameters
 print(myad5592r.channel)
 for ch in myad5592r.channel:
-    print("Channel Name: ", ch.name)
-    print("is Output? ", ch._output)
-    print("Channel Scale: ", ch.scale)
-    print("Channel Raw Value: ", ch.raw)
+    print("***********************")        # Just a separator for easier serial read
+    print("Channel Name: ", ch.name)        # Channel Name
+    print("is Output? ", ch._output)        # True = Output/Write/DAC, False = Input/Read/ADC
+    print("Channel Scale: ", ch.scale)      # Channel Scale can be 0.610351562 or 0.610351562*2
+    print("Channel Raw Value: ", float(ch.raw))    # Channel Raw Value
 
-#    print("Channel Value: ", ch.raw * ch.scale)
-
-#   print("Channel Offset: ", ch.offset)
+# Print Temperature in Celcius
+    if ch.name =="temp":
+        T = ((ch.raw + ch.offset) * ch.scale)/1000
+        print("Channel Temperature (C): ", float(T))
+# Print Real Voltage in mV
+    else:
+        print("Channel Real Value (mV): ", float(ch.raw*ch.scale))    # Channel Raw Value

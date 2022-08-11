@@ -31,13 +31,12 @@
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF
 # THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from decimal import Decimal
 
-import numpy as np
 from adi.attribute import attribute
 from adi.context_manager import context_manager
 from adi.rx_tx import rx, tx
-
+from decimal import Decimal
+import numpy as np
 
 class ad5592r(context_manager, rx):
     """AD5592R ADC/DAC"""
@@ -76,10 +75,7 @@ class ad5592r(context_manager, rx):
             name = ch._id
             output = ch._output
             self._rx_channel_names.append(name)
-            if name == "temp":
-                self.channel.append(self._channeltemp(self._ctrl, name, output))
-            else:
-                self.channel.append(self._channel(self._ctrl, name, output))
+            self.channel.append(self._channel(self._ctrl, name, output))
         rx.__init__(self)
 
     class _channel(attribute):
@@ -101,6 +97,11 @@ class ad5592r(context_manager, rx):
         def scale(self):
             return float(self._get_iio_attr_str(self.name, "scale", self._output))
 
+        @property
+        # AD559XR channel temp offset value
+        def offset(self):
+            return self._get_iio_attr(self.name, "offset", self._output)
+
         @raw.setter
         def raw(self, value):
             if self._output == True:
@@ -112,31 +113,3 @@ class ad5592r(context_manager, rx):
             for scale_available_0 in scale_available:
                 if scale_available_0 == value:
                     self._set_iio_attr(self.name, "scale", self._output, str(Decimal(value).real))
-
-    class _channeltemp(_channel):
-        """AD5592R Temperature Channel"""
-
-        # AD5592R temp channel
-        def __init__(self, ctrl, channel_name, output):
-            self.name = channel_name
-            self._ctrl = ctrl
-            self._output = output
-
-        @property
-        # AD559XR channel temp offset value
-        def offset(self):
-            return self._get_iio_attr(self.name, "offset", self._output)
-
-    def to_volts(self, index, val):
-        """Converts raw value to SI"""
-        _scale = self.channel[index].scale
-
-        ret = None
-
-        if isinstance(val, np.int16):
-            ret = val * _scale
-
-        if isinstance(val, np.ndarray):
-            ret = [x * _scale for x in val]
-
-        return ret
